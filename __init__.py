@@ -200,10 +200,10 @@ class PALLAIDIUM_PT_TestPanel(bpy.types.Panel):
             row = layout.row(align=True)
             all_enabled = all(m.is_tested for m in settings.models)
             if all_enabled:
-                op = row.operator("pallaidium.toggle_all", text="Disable All", icon='CHECKBOX_DEHLT')
+                op = row.operator("pallaidium.toggle_all", text="Disable All", icon='CHECKBOX_HLT')
                 op.mode = 'OFF'
             else:
-                op = row.operator("pallaidium.toggle_all", text="Enable All", icon='CHECKBOX_HLT')
+                op = row.operator("pallaidium.toggle_all", text="Enable All", icon='CHECKBOX_DEHLT')
                 op.mode = 'ON'
 
             model_types = sorted(list(set(m.model_type for m in settings.models)))
@@ -216,11 +216,11 @@ class PALLAIDIUM_PT_TestPanel(bpy.types.Panel):
                 header.label(text=f"{model_type.title()} Models", icon='MOD_WAVE')
 
                 if type_all_enabled:
-                    op = header.operator("pallaidium.toggle_type", text="", icon='CHECKBOX_DEHLT')
+                    op = header.operator("pallaidium.toggle_type", text="", icon='CHECKBOX_HLT')
                     op.mode = 'OFF'
                     op.model_type = model_type
                 else:
-                    op = header.operator("pallaidium.toggle_type", text="", icon='CHECKBOX_HLT')
+                    op = header.operator("pallaidium.toggle_type", text="", icon='CHECKBOX_DEHLT')
                     op.mode = 'ON'
                     op.model_type = model_type
 
