@@ -1,9 +1,9 @@
 # Location: a panel in the Text Editor's sidebar.
 
 bl_info = {
-    "name": "Pallaidium Module Checker",
+    "name": "Pallaidium Test Kit",
     "author": "tintwotin",
-    "version": (2, 6, 0),
+    "version": (2, 8, 0),
     "blender": (3, 0, 0),
     "location": "Text Editor > Sidebar > Pallaidium Test",
     "description": "Scans and tests all available models in the 'Pallaidium - Generative AI' add-on.",
@@ -119,49 +119,59 @@ class PALLAIDIUM_OT_RunTests(bpy.types.Operator):
         if PALLAIDIUM_MODULE_NAME not in bpy.context.preferences.addons:
             self.report({'ERROR'}, f"Could not find Add-on: {PALLAIDIUM_MODULE_NAME}")
             return {'CANCELLED'}
+        
+        if not hasattr(context.scene, 'input_strips') or not hasattr(context.scene, 'generatorai_typeselect'):
+            self.report({'ERROR'}, "Scene properties from Pallaidium are missing. Is it loaded?")
+            return {'CANCELLED'}
+
         settings = context.scene.pallaidium_test_settings
         prefs = bpy.context.preferences.addons[PALLAIDIUM_MODULE_NAME].preferences
         
-        # Start the Markdown report with a header
-        report_lines = [
-            "| Model | Status | Notes |",
-            "|---|---|---|"
-        ]
+        report_lines = ["| Model | Status | Notes |", "|---|---|---|"]
         
         models_to_test = [m for m in settings.models if m.is_tested]
         if not models_to_test:
             self.report({'WARNING'}, "No models were selected for testing.")
             return {'CANCELLED'}
 
+        input_mode = context.scene.input_strips
+
         for model in models_to_test:
-            self.report({'INFO'}, f"Testing: {model.name}...")
+            self.report({'INFO'}, f"Testing: {model.name} (Mode: {input_mode})...")
             try:
-                if model.model_type == 'IMAGE':
-                    prefs.image_model_card = model.model_id
-                    bpy.ops.sequencer.generate_image()
-                elif model.model_type == 'TEXT':
-                    prefs.text_model_card = model.model_id
-                    bpy.ops.sequencer.generate_text()
-                elif model.model_type == 'AUDIO':
-                    prefs.audio_model_card = model.model_id
-                    bpy.ops.sequencer.generate_audio()
-                elif model.model_type == 'MOVIE':
-                    prefs.movie_model_card = model.model_id
-                    bpy.ops.sequencer.generate_movie()
+                if input_mode == "input_prompt":
+                    if model.model_type == 'IMAGE':
+                        prefs.image_model_card = model.model_id
+                        bpy.ops.sequencer.generate_image()
+                    elif model.model_type == 'TEXT':
+                        prefs.text_model_card = model.model_id
+                        bpy.ops.sequencer.generate_text()
+                    elif model.model_type == 'AUDIO':
+                        prefs.audio_model_card = model.model_id
+                        bpy.ops.sequencer.generate_audio()
+                    elif model.model_type == 'MOVIE':
+                        prefs.movie_model_card = model.model_id
+                        bpy.ops.sequencer.generate_movie()
                 
-                # Add a success row to the Markdown table
+                elif input_mode == "input_strips":
+                    if model.model_type == 'IMAGE': prefs.image_model_card = model.model_id
+                    elif model.model_type == 'TEXT': prefs.text_model_card = model.model_id
+                    elif model.model_type == 'AUDIO': prefs.audio_model_card = model.model_id
+                    elif model.model_type == 'MOVIE': prefs.movie_model_card = model.model_id
+
+                    # FIX: Convert the model type to lowercase to match the enum's identifiers
+                    context.scene.generatorai_typeselect = model.model_type.lower()
+
+                    bpy.ops.sequencer.text_to_generator()
+
                 report_lines.append(f"| {model.name} | ✅ | Works as expected. |")
 
             except Exception as e:
-                # Sanitize the error message to not break the table
                 error_message = str(e).replace("\n", " ").strip().replace("|", "\|")
-                # Add a failure row to the Markdown table
                 report_lines.append(f"| {model.name} | ❌ | Error: {error_message} |")
         
-        # Create a new text block with a .md extension
         report_text = bpy.data.texts.new("Pallaidium Test Report.md")
         report_text.write("\n".join(report_lines))
-        
         self.report({'INFO'}, "All tests complete. Report created in Text Editor.")
         return {'FINISHED'}
 
@@ -190,10 +200,10 @@ class PALLAIDIUM_PT_TestPanel(bpy.types.Panel):
             row = layout.row(align=True)
             all_enabled = all(m.is_tested for m in settings.models)
             if all_enabled:
-                op = row.operator("pallaidium.toggle_all", text="Disable All", icon='CHECKBOX_HLT')
+                op = row.operator("pallaidium.toggle_all", text="Disable All", icon='CHECKBOX_DEHLT')
                 op.mode = 'OFF'
             else:
-                op = row.operator("pallaidium.toggle_all", text="Enable All", icon='CHECKBOX_DEHLT')
+                op = row.operator("pallaidium.toggle_all", text="Enable All", icon='CHECKBOX_HLT')
                 op.mode = 'ON'
 
             model_types = sorted(list(set(m.model_type for m in settings.models)))
@@ -206,11 +216,11 @@ class PALLAIDIUM_PT_TestPanel(bpy.types.Panel):
                 header.label(text=f"{model_type.title()} Models", icon='MOD_WAVE')
 
                 if type_all_enabled:
-                    op = header.operator("pallaidium.toggle_type", text="", icon='CHECKBOX_HLT')
+                    op = header.operator("pallaidium.toggle_type", text="", icon='CHECKBOX_DEHLT')
                     op.mode = 'OFF'
                     op.model_type = model_type
                 else:
-                    op = header.operator("pallaidium.toggle_type", text="", icon='CHECKBOX_DEHLT')
+                    op = header.operator("pallaidium.toggle_type", text="", icon='CHECKBOX_HLT')
                     op.mode = 'ON'
                     op.model_type = model_type
 
