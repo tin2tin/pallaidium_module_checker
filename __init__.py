@@ -1,9 +1,9 @@
 # Location: a panel in the Text Editor's sidebar.
 
 bl_info = {
-    "name": "Pallaidium Test Kit",
+    "name": "Pallaidium Module Checker",
     "author": "tintwotin",
-    "version": (2, 6, 0), # Added GitHub-flavored Markdown reporting
+    "version": (2, 6, 0),
     "blender": (3, 0, 0),
     "location": "Text Editor > Sidebar > Pallaidium Test",
     "description": "Scans and tests all available models in the 'Pallaidium - Generative AI' add-on.",
